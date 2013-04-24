@@ -42,6 +42,8 @@ class Account(TimeStampedModel):
 
     @classmethod
     def GetPrimaryDestinationAccount(cls, user):
+        """ Returns the given user's primary destination account. """
+
         try:
             return cls.objects.get(user=user, is_primary_destination=True)
         except cls.DoesNotExist:
@@ -52,6 +54,8 @@ class Account(TimeStampedModel):
 
     @classmethod
     def GetPrimarySourceAccount(cls, user):
+        """ Returns the given user's primary source account. """
+
         try:
             return cls.objects.get(user=user, is_primary_source=True)
         except cls.DoesNotExist:
