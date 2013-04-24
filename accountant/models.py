@@ -36,11 +36,9 @@ class Account(TimeStampedModel):
 
     @classmethod
     def GetMasterAccount(cls):
-        return cls.objects.get(pk=settings.MASTER_ACCOUNT_PK)
+        """ Returns the site master account. """
 
-    @classmethod
-    def GetStripeAccount(cls):
-        return cls.objects.get(pk=settings.STRIPE_ACCOUNT_PK)
+        return cls.objects.get(pk=settings.MASTER_ACCOUNT_PK)
 
     @classmethod
     def GetPrimaryDestinationAccount(cls, user):
