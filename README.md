@@ -14,5 +14,4 @@
 
 
         MASTER_ACCOUNT_PK  = 1
-        STRIPE_ACCOUNT_PK  = 2
 3. Run `python manage.py syncdb` to create the model tables.
