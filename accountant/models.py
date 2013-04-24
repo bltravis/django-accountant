@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.dispatch import receiver
 
-from model_utils.models import TimeStampedModel
+from django_extensions.db.models import TimeStampedModel
 
 log = logging.getLogger('accountant.models')
 
