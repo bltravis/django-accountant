@@ -1,61 +1,11 @@
 # coding: utf8
 
-from django.core.urlresolvers import reverse
-
-from .models import Account, Transaction
-
 from django.contrib.auth import get_user_model
 create_user = get_user_model().objects.create_user
 
-from django import test
+from testutils import BaseTestCase
 
-
-class BaseTestCase(test.TestCase):
-    """
-    The base test case, providing convenience methods for various testing
-    related tasks.
-    """
-
-    def setUp(self):
-        self.client = test.client.Client()
-
-    def check_template(self, url_name, templated_path,
-                       method='get', **kwargs):
-        """
-        Checks the given template was used for the given url.
-        """
-
-        response = getattr(self, method)(
-            url_name=url_name, url_kwargs=kwargs
-        )
-        self.assertTemplateUsed(response, templated_path)
-
-    def get_url(self, name, **kwargs):
-        """ Returns the url for the given name, args and kwargs. """
-
-        return reverse(name, kwargs=kwargs)
-
-    def get(self, url_name=None, url=None, url_kwargs={}, data={}):
-        """
-        Returns the response for a POST request on the url with the given name,
-        args and kwargs.
-        """
-
-        if not url:
-            url = self.get_url(url_name, **url_kwargs)
-
-        return self.client.get(url, data=data)
-
-    def post(self, url_name=None, url=None, url_kwargs={}, data={}):
-        """
-        Returns the response for a POST request on the url with the given name,
-        args and kwargs.
-        """
-
-        if not url:
-            url = self.get_url(url_name, **url_kwargs)
-
-        return self.client.post(url, data=data)
+from .models import Account, Transaction
 
 
 class TestAccount(BaseTestCase):
