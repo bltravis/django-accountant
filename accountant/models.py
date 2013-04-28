@@ -131,7 +131,7 @@ def create_user_account(sender, instance, created, **kwargs):
 
 
 class Transaction(TimeStampedModel):
-    amount = models.DecimalField(decimal_places=4, max_digits=9)
+    amount = models.DecimalField(decimal_places=8, max_digits=24)
     comment = models.CharField(max_length=200, blank=True, default='')
     is_settled = models.BooleanField(default=False)
 
