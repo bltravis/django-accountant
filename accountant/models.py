@@ -14,6 +14,7 @@ log = logging.getLogger('accountant.models')
 
 class Account(TimeStampedModel):
     comment = models.CharField(max_length=200, blank=True)
+    currency = models.CharField(max_length=3, default='USD')
     is_primary_destination = models.BooleanField(default=True)
     is_primary_source = models.BooleanField(default=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='accounts')
@@ -41,11 +42,13 @@ class Account(TimeStampedModel):
         return cls.objects.get(pk=settings.MASTER_ACCOUNT_PK)
 
     @classmethod
-    def GetPrimaryDestinationAccount(cls, user):
+    def GetPrimaryDestinationAccount(cls, user, currency='USD'):
         """ Returns the given user's primary destination account. """
 
         try:
-            return cls.objects.get(user=user, is_primary_destination=True)
+            return cls.objects.get(
+                user=user, is_primary_destination=True, currency=currency
+            )
         except cls.DoesNotExist:
             log.error(
                 'Primary destination account for user: %s does not exist.'
@@ -53,11 +56,13 @@ class Account(TimeStampedModel):
             )
 
     @classmethod
-    def GetPrimarySourceAccount(cls, user):
+    def GetPrimarySourceAccount(cls, user, currency='USD'):
         """ Returns the given user's primary source account. """
 
         try:
-            return cls.objects.get(user=user, is_primary_source=True)
+            return cls.objects.get(
+                user=user, is_primary_source=True, currency=currency
+            )
         except cls.DoesNotExist:
             log.error(
                 'Primary source account for user: %s does not exist.'
