@@ -14,7 +14,7 @@ log = logging.getLogger('accountant.models')
 
 class Account(TimeStampedModel):
     comment = models.CharField(max_length=200, blank=True)
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=6, default='USD')
     is_primary_destination = models.BooleanField(default=True)
     is_primary_source = models.BooleanField(default=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='accounts')
