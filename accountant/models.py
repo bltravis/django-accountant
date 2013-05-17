@@ -13,6 +13,11 @@ log = logging.getLogger('accountant.models')
 
 
 class Account(TimeStampedModel):
+    """
+    Represents an account that contains funds that may be transfered to other
+    accounts.
+    """
+
     comment = models.CharField(max_length=200, blank=True)
     currency = models.CharField(max_length=6, default='USD')
     is_primary_destination = models.BooleanField(default=True)
@@ -112,15 +117,13 @@ class Account(TimeStampedModel):
             comment=comment,
         )
 
-        destination_transaction = Transaction.objects.create(
+        return Transaction.objects.create(
             amount=amount,
             is_settled=True,
             source_account=self,
             destination_account=account,
             comment=comment,
         )
-
-        return destination_transaction
 
 
 @receiver(models.signals.post_save,
@@ -136,6 +139,8 @@ def create_user_account(sender, instance, created, **kwargs):
 
 
 class Transaction(TimeStampedModel):
+    """ Represents a transfer of funds between two accounts. """
+
     amount = models.DecimalField(decimal_places=8, max_digits=24)
     comment = models.CharField(max_length=200, blank=True, default='')
     is_settled = models.BooleanField(default=False)
