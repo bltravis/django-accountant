@@ -3,9 +3,7 @@
 import logging
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import models
-from django.dispatch import receiver
 
 from django_extensions.db.models import TimeStampedModel
 
@@ -37,14 +35,16 @@ class Account(TimeStampedModel):
 
     def __unicode__(self):
         if self.comment:
-            return unicode('%s (%s)' % (self.user, self.comment))
-        return unicode(self.user)
+            return unicode('[%s]%s (%s)' % (
+                self.currency, self.user, self.comment))
+        return '[%s]%s' % (self.currency, self.user)
 
     @classmethod
-    def GetMasterAccount(cls):
+    def GetMasterAccount(cls, currency='USD'):
         """ Returns the site master account. """
 
-        return cls.objects.get(pk=settings.MASTER_ACCOUNT_PK)
+        return cls.objects.get(
+            pk=settings.MASTER_ACCOUNT_PK, currency=currency)
 
     @classmethod
     def GetPrimaryDestinationAccount(cls, user, currency='USD'):
@@ -74,24 +74,45 @@ class Account(TimeStampedModel):
                 % user
             )
 
+    def get_deposits(self, only_settled=True):
+        """ Returns the deposit transactions. """
+
+        return self.destination_transactions.filter(
+            amount__gt=0, is_settled=only_settled)
+    deposits = property(get_deposits)
+
+    def get_withdrawals(self, only_settled=True):
+        """ Returns the withdrawal transactions. """
+
+        return self.source_transactions.filter(
+            amount__lt=0, is_settled=only_settled)
+    withdrawals = property(get_withdrawals)
+
+    def get_refreshed_balance(self, only_settled=True):
+        """
+        Sums the source transactions less than zero and the destination
+        transactions greater than zero.
+        """
+
+        negatives = sum(map(
+            lambda t: t.amount,
+            self.get_withdrawals(only_settled=only_settled)
+        ))
+
+        positives = sum(map(
+            lambda t: t.amount,
+            self.get_deposits(only_settled=only_settled)
+        ))
+
+        return float(positives + negatives)
+    refreshed_balance = property(get_refreshed_balance)
+
     def get_balance(self, only_settled=True):
         """
         Sums the source transactions less than zero and the destination
         transactions greater than zero.
         """
-        balance = sum(map(
-            lambda t: t.amount, self.source_transactions.filter(
-                amount__lt=0, is_settled=only_settled
-            )
-        ))
-
-        balance += sum(map(
-            lambda t: t.amount, self.destination_transactions.filter(
-                amount__gt=0, is_settled=only_settled
-            )
-        ))
-
-        return float(balance)
+        return self.get_refreshed_balance(only_settled=only_settled)
     balance = property(get_balance)
 
     def transfer(self, amount, account, comment=''):
@@ -126,18 +147,6 @@ class Account(TimeStampedModel):
         )
 
 
-@receiver(models.signals.post_save,
-          sender=get_user_model(),
-          dispatch_uid='create_user_account')
-def create_user_account(sender, instance, created, **kwargs):
-    if getattr(settings, 'ACCOUNTANT_CREATE_USER_ACCOUNT', True) and created:
-        Account.objects.create(
-            user=instance,
-            is_primary_destination=True,
-            is_primary_source=True,
-        )
-
-
 class Transaction(TimeStampedModel):
     """ Represents a transfer of funds between two accounts. """
 
@@ -156,10 +165,37 @@ class Transaction(TimeStampedModel):
     )
 
     def __unicode__(self):
-        return unicode('%f %s (%d) %s -> %s' % (
+        return unicode('%f %s -> %s' % (
             self.amount,
-            self.reference_type,
-            self.reference_id,
             self.source_account,
             self.destination_account
         ))
+
+    def get_currency(self):
+        """ Returns the currency of the destination account. """
+
+        return self.get_destination_currency()
+    currency = property(get_currency)
+
+    def get_destination_currency(self):
+        """ Returns the currency of the destination account. """
+
+        return self.destination_account.currency
+    destination_currency = property(get_destination_currency)
+
+    def get_source_currency(self):
+        """ Returns the currency of the source account. """
+
+        return self.destination_account.currency
+    source_currency = property(get_source_currency)
+
+
+class AccountUserProfileMixin(object):
+    """ Gives the user profile object access to the user accounts. """
+
+    def get_accounts(self, only_primaries=True):
+        """ Returns all accounts for the user. """
+
+        return self.user.accounts.filter(
+            models.Q(is_primary_destination=True),
+            models.Q(is_primary_destination=True))
