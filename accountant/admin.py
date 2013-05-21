@@ -8,6 +8,7 @@ from .models import Account, Transaction
 class AccountAdmin(admin.ModelAdmin):
     list_display = (
         'user',
+        'currency',
         'comment',
         'balance',
         'is_primary_destination',
@@ -24,6 +25,7 @@ class TransactionAdmin(admin.ModelAdmin):
         'source_account',
         'destination_account',
         'amount',
+        'currency',
         'is_settled',
         'comment',
         'created',
