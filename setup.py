@@ -66,7 +66,7 @@ for dirpath, dirnames, filenames in os.walk(project_dir):
 
 setup(
     name='django-accountant',
-    version='0.1.6',
+    version='0.1.7',
     description='Django based account manager.',
     author='Ron Elliott',
     author_email='ronaldbelliott@gmail.com',
