@@ -115,6 +115,37 @@ class Account(TimeStampedModel):
         return self.get_refreshed_balance(only_settled=only_settled)
     balance = property(get_balance)
 
+    def get_available_balance(self, only_settled=True):
+        """
+        Sums the source transactions less than zero and the destination
+        transactions greater than zero.
+        """
+        balance = self.get_balance(only_settled=only_settled)
+        holds = float(sum(map(
+            lambda h: h.amount, self.claims.filter(is_released=False))))
+
+        return balance - holds
+
+    available_balance = property(get_available_balance)
+
+    def place_hold(self, amount, comment=''):
+        """ Creates a balance claim on this account. """
+
+        return self.claims.create(amount=amount, comment=comment)
+
+    def release_hold(self, amount, comment=''):
+        """
+        Creates a balance claim on this account, returning True if successful
+        or False otherwise.
+        """
+
+        try:
+            claim = self.claims.get(amount=amount, comment=comment)
+            claim.release()
+            return True
+        except BalanceClaim.DoesNotExist:
+            return False
+
     def transfer(self, amount, account, comment=''):
         """
         Transfers the amount from this account to the given account if the
@@ -145,6 +176,34 @@ class Account(TimeStampedModel):
             destination_account=account,
             comment=comment,
         )
+
+
+class BalanceClaim(TimeStampedModel):
+    """ Represents a hold on a balance in an account. """
+
+    account = models.ForeignKey('accountant.Account', related_name='claims')
+    amount = models.DecimalField(decimal_places=8, max_digits=24)
+    comment = models.CharField(max_length=200, blank=True)
+    is_released = models.BooleanField(default=False, blank=True)
+
+    def __unicode__(self):
+        return '%f' % self.amount
+
+    def release(self, commit=True):
+        """ Releases the claim. """
+
+        self.is_released = True
+
+        if commit:
+            self.save()
+
+    def unrelease(self, commit=True):
+        """ Unreleases the claim. """
+
+        self.is_released = False
+
+        if commit:
+            self.save()
 
 
 class Transaction(TimeStampedModel):
@@ -188,14 +247,3 @@ class Transaction(TimeStampedModel):
 
         return self.destination_account.currency
     source_currency = property(get_source_currency)
-
-
-class AccountUserProfileMixin(object):
-    """ Gives the user profile object access to the user accounts. """
-
-    def get_accounts(self, only_primaries=True):
-        """ Returns all accounts for the user. """
-
-        return self.user.accounts.filter(
-            models.Q(is_primary_destination=True),
-            models.Q(is_primary_destination=True))
