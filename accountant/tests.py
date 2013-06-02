@@ -8,7 +8,7 @@ from testutils import BaseTestCase
 from .models import Account, Transaction
 
 
-class TestAccount(BaseTestCase):
+class AccountantBaseTestCase(BaseTestCase):
     email1 = 'test1@example.com'
     password1 = 'test'
 
@@ -17,43 +17,26 @@ class TestAccount(BaseTestCase):
 
     def setUp(self):
         self.user1 = create_user(self.email1, self.password1)
-        self.user1_source = Account.GetPrimarySourceAccount(self.user1)
+        Account.objects.create(user=self.user1)
+        self.user1_source = Account.GetPrimarySourceAccount(user=self.user1)
         self.user1_destination = Account.GetPrimaryDestinationAccount(
-            self.user1
-        )
+            user=self.user1)
 
         self.user2 = create_user(self.email2, self.password2)
-        self.user2_source = Account.GetPrimarySourceAccount(self.user2)
+        Account.objects.create(user=self.user2)
+        self.user2_source = Account.GetPrimarySourceAccount(user=self.user2)
         self.user2_destination = Account.GetPrimaryDestinationAccount(
-            self.user2
-        )
+            user=self.user2)
 
-    def test_new_user_destination_account_creation(self):
-        user = create_user('bob@dundermifflin.com', 'test')
 
-        try:
-            self.assertNotEqual(
-                Account.GetPrimaryDestinationAccount(user), None
-            )
-        except Account.DoesNotExist:
-            self.fail('New user destination account creation failed.')
-
-    def test_new_user_source_account_creation(self):
-        user = create_user('samantha@dundermifflin.com', 'test')
-
-        try:
-            self.assertNotEqual(
-                Account.GetPrimarySourceAccount(user), None
-            )
-        except Account.DoesNotExist:
-            self.fail('New user source account creation failed.')
+class TestAccount(AccountantBaseTestCase):
 
     def test_new_user_balance(self):
         user = create_user('hope@dundermifflin.com', 'test')
+        Account.objects.create(user=user)
 
         self.assertEqual(
-            Account.GetPrimaryDestinationAccount(user).balance, 0.0
-        )
+            Account.GetPrimaryDestinationAccount(user).balance, 0.0)
 
         self.assertEqual(Account.GetPrimarySourceAccount(user).balance, 0.0)
 
@@ -80,6 +63,39 @@ class TestAccount(BaseTestCase):
 
     def test_transfer_insufficient_balance(self):
         self.assertEqual(self.user1_source.balance, 0.0)
+
+        with self.assertRaises(Account.InsufficientBalance):
+            self.user1_source.transfer(50.0, self.user2_destination)
+
+
+class TestBalanceClaim(AccountantBaseTestCase):
+
+    def setUp(self):
+        super(TestBalanceClaim, self).setUp()
+
+        Transaction.objects.create(
+            amount=50.0,
+            source_account=self.user1_source,
+            destination_account=self.user1_destination,
+            is_settled=True,
+        )
+
+    def test_place_hold(self):
+        self.assertEqual(self.user1_source.available_balance, 50.0)
+        self.user1_source.place_hold(50.0)
+        self.assertEqual(self.user1_source.available_balance, 0.0)
+
+    def test_release_hold(self):
+        self.assertEqual(self.user1_source.available_balance, 50.0)
+        self.user1_source.place_hold(50.0)
+        self.assertEqual(self.user1_source.available_balance, 0.0)
+        self.user1_source.release_hold(50.0)
+        self.assertEqual(self.user1_source.available_balance, 50.0)
+
+    def test_transfer_with_no_available_funds(self):
+        self.assertEqual(self.user1_source.available_balance, 50.0)
+        self.user1_source.place_hold(50.0)
+        self.assertEqual(self.user1_source.available_balance, 0.0)
 
         with self.assertRaises(Account.InsufficientBalance):
             self.user1_source.transfer(50.0, self.user2_destination)
