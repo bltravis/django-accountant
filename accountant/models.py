@@ -151,15 +151,14 @@ class Account(TimeStampedModel):
         Transfers the amount from this account to the given account if the
         account has enough funds.
         """
-        if self.balance < amount:
+        if self.available_balance < amount:
             log.error(
                 'Account %d does not have enough funds to cover the transfer. '
                 'Balance: %0.2f, Amount Requested: %0.2f, Comment: %s' % (
-                    self.pk, self.balance, amount, comment
-                )
-            )
+                    self.pk, self.available_balance, amount, comment))
 
-            raise self.__class__.InsufficientBalance(self.balance, amount)
+            raise self.__class__.InsufficientBalance(
+                self.available_balance, amount)
 
         Transaction.objects.create(
             amount=amount * -1,
