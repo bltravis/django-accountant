@@ -74,4 +74,13 @@ setup(
     dependency_links=parse_dependency_links('requirements.txt'),
     packages=packages,
     data_files=data_files,
+    classifiers=(
+        'Development Status :: 3 - Alpha',
+        'Environment :: Web Environment',
+        'Framework :: Django',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: POSIX',
+        'Programming Language :: Python',
+        'Topic :: Office/Business :: Financial :: Accounting',
+    ),
 )
