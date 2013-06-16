@@ -48,7 +48,7 @@ class Account(TimeStampedModel):
             pk=settings.MASTER_ACCOUNT_PK, currency=currency)
 
     @classmethod
-    def GetPrimaryDestinationAccount(cls, user=None, group=None currency='USD'):
+    def GetPrimaryDestinationAccount(cls, user=None, group=None, currency='USD'):
         """ Returns the given user or group's primary destination account. """
         
         if user:
@@ -72,7 +72,7 @@ class Account(TimeStampedModel):
             )
 
     @classmethod
-    def GetPrimarySourceAccount(cls, user, currency='USD'):
+    def GetPrimarySourceAccount(cls, user=None, group=None, currency='USD'):
         """ Returns the given user's primary source account. """
 
         if user:
