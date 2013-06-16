@@ -3,11 +3,14 @@
 from django.contrib import admin
 
 from .models import Account, BalanceClaim, Transaction
+from .forms import AccountForm
 
 
 class AccountAdmin(admin.ModelAdmin):
+    form = AccountForm
     list_display = (
         'user',
+        'group',
         'currency',
         'comment',
         'balance',

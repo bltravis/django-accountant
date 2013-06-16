@@ -1,5 +1,5 @@
 # coding: utf8
-
+from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
 create_user = get_user_model().objects.create_user
 
@@ -14,6 +14,8 @@ class AccountantBaseTestCase(BaseTestCase):
 
     email2 = 'test2@example.com'
     password2 = 'test'
+    
+    group1 = 'testgroup'
 
     def setUp(self):
         self.user1 = create_user(self.email1, self.password1)
@@ -27,6 +29,13 @@ class AccountantBaseTestCase(BaseTestCase):
         self.user2_source = Account.GetPrimarySourceAccount(user=self.user2)
         self.user2_destination = Account.GetPrimaryDestinationAccount(
             user=self.user2)
+        
+        self.testgroup = Group.objects.create(name=self.group1)
+        self.testgroup.user_set.add(self.user1, self.user2)#This will break if using a custom User model NOT named "User"
+        Account.objects.create(group=self.testgroup)
+        self.testgroup_source = Account.GetPrimarySourceAccount(group=self.testgroup)
+        self.testgroup_destination = Account.GetPrimaryDestinationAccount(
+            group=self.testgroup)
 
 
 class TestAccount(AccountantBaseTestCase):
@@ -39,6 +48,14 @@ class TestAccount(AccountantBaseTestCase):
             Account.GetPrimaryDestinationAccount(user).balance, 0.0)
 
         self.assertEqual(Account.GetPrimarySourceAccount(user).balance, 0.0)
+    
+    def test_new_group_balance(self):
+        group = self.testgroup
+        
+        self.assertEqual(
+            Account.GetPrimaryDestinationAccount(group).balance, 0.0)
+        
+        self.assertEqual(Account.GetPrimarySourceAccount(group).balance, 0.0)
 
     def test_balance(self):
         Transaction.objects.create(

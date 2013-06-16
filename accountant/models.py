@@ -20,8 +20,9 @@ class Account(TimeStampedModel):
     currency = models.CharField(max_length=6, default='USD')
     is_primary_destination = models.BooleanField(default=True)
     is_primary_source = models.BooleanField(default=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='accounts')
-
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='accounts', blank=True, null=True)
+    group = models.ForeignKey('auth.Group', related_name='accounts', blank=True, null=True)
+    
     class InsufficientBalance(Exception):
         def __init__(self, balance, amount):
             self.balance = balance
@@ -36,8 +37,8 @@ class Account(TimeStampedModel):
     def __unicode__(self):
         if self.comment:
             return unicode('[%s]%s (%s)' % (
-                self.currency, self.user, self.comment))
-        return '[%s]%s' % (self.currency, self.user)
+                self.currency, self.user or self.group, self.comment))
+        return '[%s]%s' % (self.currency, self.user or self.group)
 
     @classmethod
     def GetMasterAccount(cls, currency='USD'):
@@ -47,31 +48,51 @@ class Account(TimeStampedModel):
             pk=settings.MASTER_ACCOUNT_PK, currency=currency)
 
     @classmethod
-    def GetPrimaryDestinationAccount(cls, user, currency='USD'):
-        """ Returns the given user's primary destination account. """
-
+    def GetPrimaryDestinationAccount(cls, user=None, group=None currency='USD'):
+        """ Returns the given user or group's primary destination account. """
+        
+        if user:
+            try:
+                return cls.objects.get(
+                    user=user, is_primary_destination=True, currency=currency
+                )
+            except cls.DoesNotExist:
+                log.error(
+                    'Primary destination account for user: %s does not exist.'
+                    % user
+                )
         try:
             return cls.objects.get(
-                user=user, is_primary_destination=True, currency=currency
+                group=group, is_primary_destination=True, currency=currency
             )
         except cls.DoesNotExist:
             log.error(
-                'Primary destination account for user: %s does not exist.'
-                % user
+                'Primary destination account for group: %s does not exist.'
+                % group
             )
 
     @classmethod
     def GetPrimarySourceAccount(cls, user, currency='USD'):
         """ Returns the given user's primary source account. """
 
+        if user:
+            try:
+                return cls.objects.get(
+                    user=user, is_primary_source=True, currency=currency
+                )
+            except cls.DoesNotExist:
+                log.error(
+                    'Primary source account for user: %s does not exist.'
+                    % user
+                )
         try:
             return cls.objects.get(
-                user=user, is_primary_source=True, currency=currency
+                group=group, is_primary_source=True, currency=currency
             )
         except cls.DoesNotExist:
             log.error(
-                'Primary source account for user: %s does not exist.'
-                % user
+                'Primary source account for group: %s does not exist.'
+                % group
             )
 
     def get_deposits(self, only_settled=True):
