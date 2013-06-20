@@ -133,18 +133,19 @@ class Account(TimeStampedModel):
 
         return self.claims.create(amount=amount, comment=comment)
 
-    def release_hold(self, amount, comment=''):
+    def release_hold(self, amount, comment='', claim=None):
         """
-        Creates a balance claim on this account, returning True if successful
+        Releases a balance claim on this account, returning True if successful
         or False otherwise.
         """
-
-        try:
-            claim = self.claims.get(amount=amount, comment=comment)
-            claim.release()
-            return True
-        except BalanceClaim.DoesNotExist:
-            return False
+        
+        if not claim:
+            try:
+                claim = self.claims.get(amount=amount, comment=comment)
+            except BalanceClaim.DoesNotExist:
+                return False
+        claim.release()
+        return True
 
     def transfer(self, amount, account, comment=''):
         """
